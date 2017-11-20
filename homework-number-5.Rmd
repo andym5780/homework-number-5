@@ -1,0 +1,94 @@
+---
+title: "homework-number-5"
+output: html_document
+---
+```{r}
+library(curl)
+library(knitr)
+library(boot)
+```
+```{r}
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/KamilarAndCooperData.csv")
+df <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(df)
+```
+#1
+```{r}
+h <- log(df$HomeRange_km2)
+
+b <- log(df$Body_mass_female_mean)
+```
+
+```{r}
+plot(x = b, y = h)
+```
+Here I plotted  log(HomeRange_km2) and log(Body_mass_female_mean) so see the relation
+
+```{r}
+m <- lm(data = df, h ~ b)
+summary(m)
+```
+Here the intercept is -9.44123 and the slope is 1.03643
+
+#2
+```{r}
+k <- 1000  # number of samples
+n <- 5   #the homeworkd didnt say how big to make each sample so I just used 5
+s <- NULL  # dummy variable to hold each sample
+for (i in 1:k) {
+    s[[i]] <- sample(m, size = n, replace = FALSE)
+}
+head(s[[i]])
+```
+```{r}
+summary(s)
+```
+im going to try and use the boot package and fallowing the steps in the book to see if this is how I should make it
+```{r}
+bs <- function(formula = lm(h ~b), data, indices) {
+  d <- data[indices]
+  fit <- lm(formula, data=d)
+  return(coef(fit))
+}
+```
+
+```{r, eval=FALSE}
+results <- boot(data=df, statistic=bs, R=1000, formula = lm(h ~ b))
+```
+I am still working on figuring this out so it might take longer than 2 pm today, but I'll submit what I have now and again when I finish it. Sorry for the late submission
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
