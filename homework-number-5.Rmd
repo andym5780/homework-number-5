@@ -9,68 +9,116 @@ library(boot)
 ```
 ```{r}
 f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/KamilarAndCooperData.csv")
-df <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
-head(df)
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
 ```
 #1
 ```{r}
-h <- log(df$HomeRange_km2)
+h <- log(d$HomeRange_km2)
 
-b <- log(df$Body_mass_female_mean)
+b <- log(d$Body_mass_female_mean)
 ```
 
 ```{r}
 plot(x = b, y = h)
 ```
-Here I plotted  log(HomeRange_km2) and log(Body_mass_female_mean) so see the relation
+Here I plotted  log(HomeRange_km2) and log(Body_mass_female_mean) so see if there is a visual the relation
 
 ```{r}
-m <- lm(data = df, h ~ b)
+m <- lm(data = d, h ~ b)
 summary(m)
 ```
-Here the intercept is -9.44123 and the slope is 1.03643
+Here the intercept is -9.44123 and the slope is 1.03643, the standard error for the intercept is 0.67293, the standard errror for the slope is 0.08488
+
+```{r}
+confint(m, level = 0.95)
+```
+here are the confidence intervales for the intercept is -10.7720889 to -8.110374, and the CI for slope is 0.8685707 to 1.204292
+
 
 #2
+##1 Estimate the standard error for each of your ββ coefficients as the standard deviation of the sampling distribution from your bootstrap and determine the 95% CI for each of your ββ coefficients based on the appropriate quantiles from your sampling distribution.
+I tried to do the way you did on the modules but I coudn't figure it out so I just got rid of it and now I'm doing what the R in action book sayas to do
 ```{r}
-k <- 1000  # number of samples
-n <- 5   #the homeworkd didnt say how big to make each sample so I just used 5
-s <- NULL  # dummy variable to hold each sample
-for (i in 1:k) {
-    s[[i]] <- sample(m, size = n, replace = FALSE)
-}
-head(s[[i]])
+d$h <- log(d$HomeRange_km2)
+
+d$b <- log(d$Body_mass_female_mean)
 ```
+
 ```{r}
-summary(s)
-```
-im going to try and use the boot package and fallowing the steps in the book to see if this is how I should make it
-```{r}
-bs <- function(formula = lm(h ~b), data, indices) {
-  d <- data[indices]
-  fit <- lm(formula, data=d)
-  return(coef(fit))
-}
+head(d)
 ```
 
 ```{r, eval=FALSE}
-results <- boot(data=df, statistic=bs, R=1000, formula = lm(h ~ b))
+library(boot)
+bs <- function(formula = lm(h ~ b), data=d, indices) {
+  d <- data[indices]
+  fit <- lm( h ~ b, data=d)
+  return(coef(fit))
+}
+
+results <- boot(data=d, statistic=bs, R=1000, formula = lm(h ~ b))
+print(results)
 ```
 I am still working on figuring this out so it might take longer than 2 pm today, but I'll submit what I have now and again when I finish it. Sorry for the late submission
 
+I have been working on this same code above and the reason I couldn't get it to work was becasue I had "d <- data[indices]" not "d <- data[indices,]". I have taken out the attempt that did not work such as the way to bootstrap in the modules, but I have left in the one example of where I left our a "," so you could see what I had
+
+```{r}
+library(boot)
+# function to obtain regression weights 
+bs <- function(formula = lm(h ~ b), data = d, indices) {
+  d <- data[indices,] # allows boot to select sample 
+  fit <- lm(h ~ b , data=d)
+  return(coef(fit)) 
+} 
+# bootstrapping with 1000 replications 
+results <- boot(data=d, statistic=bs, 
+  	R=1000, formula=lm(h ~ b))
+```
+
+```{r}
+print(results)
+```
+Here the beta1 std. error (the SE for the intersept) is 0.60660966, the beta0 std. error (the SE for the slope) is 0.07809698, but so do "the  standard error for each of your ββ coefficients as the standard deviation of the sampling distribution from your bootstrap and determine the 95% CI for each of your ββ coefficients based on the appropriate quantiles from your sampling distribution." I'll do this below
+```{r}
+results$t
+```
+```{r}
+SEbeta1 <- sd(results$t[,1])
+SEbeta1
+```
+so this is the SE for beta1 which is 0.606609 by using the SD, which is the same as the error from the print
+```{r}
+SEbeta0 <- sd(results$t[,2])
+SEbeta0
+```
+so this is the SE for beta0 which is 0.07809698 by using the SD, which is the same as the error from the print
+
+now I am going to calculate the CI for these beta values
+
+```{r}
+CIbeta0 <- boot.ci(results, type = "bca", index = 2) #here index = 2 is referring to the slope or beta0
+CIbeta0
+```
+so the 95% CI for beta0 is from 0.898 to 1.212
+
+```{r}
+CIbeta1 <- boot.ci(results, type = "bca", index = 1) #here index = 1 is referring to the intersept or beta1
+CIbeta1
+```
+so the 95% CI for beta1 is from -10.836 to -8.376
+
+##2 How does the former compare to the SE estimated from your entire dataset using the formula for standard error implemented in lm()?
+
+The SE from the original lm was 0.67293 for the intersept(beta1) and 0.08488 for the slope(beta0), the SE from the bootstrapped samples are 0.60660966 for the intersept(beta1) and  0.07809698 for the Slope(beta0). The SEs are lower in the bootstraped dataset becaue we have ran 1000 tests so we have a large amount of data to select from and make a model with a better fit becaue we have more datapoint and slopes as oppesed the the original lm model because we are only selecting from one dataset insted of 1000
+
+##3 How does the latter compare to the 95% CI estimated from your entire dataset?
+
+The CI for the original lm was -10.7720889 to -8.110374 for the intercept(beta1), and 0.8685707 to 1.204292 for the slope(beta0). The CI for the bootstraped dataset was -10.836 to -8.376 for the intercept(beta1) and 0.898 to 1.212 for the slope(beta0). Here the CI's for both the beta values have a closer range in the bootstraped than they do in the original lm. This seems to be for the same reason as why the bootstraped version has a lower SE,  becaue we have ran 1000 tests so we have a large amount of data to select from and make a model with a better fit becaue we have more datapoint and slopes as oppesed the the original lm model because we are only selecting from one dataset insted of 1000
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+I did not do the extra credit
 
 
 
